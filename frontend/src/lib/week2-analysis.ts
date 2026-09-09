@@ -31,11 +31,11 @@ function random(seed: number) {
 }
 
 function edgeKey(a: number, b: number) {
-  return a < b ? `${a}:${b}` : `${b}:${a}`
+  return a < b ? a * 100_000 + b : b * 100_000 + a
 }
 
 function uniqueEdges(edges: Array<[number, number]>) {
-  const seen = new Set<string>()
+  const seen = new Set<number>()
   const result: Array<[number, number]> = []
   for (const [a, b] of edges) {
     if (a === b) continue
@@ -133,7 +133,7 @@ export function measureGraph(graph: SimpleGraph): ModelMetrics {
 
 export function erdosRenyi(n: number, m: number, seed = 2026): SimpleGraph {
   const rng = random(seed)
-  const selected = new Set<string>()
+  const selected = new Set<number>()
   const edges: Array<[number, number]> = []
   while (edges.length < m) {
     const a = Math.floor(rng() * n)
@@ -155,7 +155,7 @@ export function wattsStrogatz(
 ): SimpleGraph {
   const rng = random(seed)
   const edges: Array<[number, number]> = []
-  const used = new Set<string>()
+  const used = new Set<number>()
   for (let node = 0; node < n; node++) {
     for (let offset = 1; offset <= k / 2; offset++) {
       const original = (node + offset) % n
@@ -214,7 +214,7 @@ export function degreePreservingShuffle(
     if (!one || !two) continue
     const [a, b] = one
     const [c, d] = two
-    if (new Set([a, b, c, d]).size < 4) continue
+    if (a === c || a === d || b === c || b === d) continue
     const nextOne: [number, number] = rng() < 0.5 ? [a, d] : [a, c]
     const nextTwo: [number, number] = nextOne[1] === d ? [c, b] : [b, d]
     const keyOne = edgeKey(...nextOne)

@@ -22,6 +22,7 @@ import {
 } from "@/lib/week2-analysis"
 
 const COLORS = ["#f4f4f5", "#60a5fa", "#c084fc", "#fb923c"]
+const SHUFFLE_CACHE: number[] = []
 
 function NetworkPreview({ graph, modelIndex }: { graph: SimpleGraph; modelIndex: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -121,6 +122,7 @@ function ParameterSlider({
   max,
   step,
   onChange,
+  onCommit,
 }: {
   label: string
   value: number
@@ -129,11 +131,20 @@ function ParameterSlider({
   max: number
   step: number
   onChange: (value: number) => void
+  onCommit?: (value: number) => void
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-[11rem_1fr_4rem] sm:items-center">
       <span className="text-xs text-zinc-400">{label}</span>
-      <Slider min={min} max={max} step={step} value={[value]} onValueChange={([next]) => onChange(next ?? value)} aria-label={label} />
+      <Slider
+        min={min}
+        max={max}
+        step={step}
+        value={[value]}
+        onValueChange={([next]) => onChange(next ?? value)}
+        onValueCommit={([next]) => onCommit?.(next ?? value)}
+        aria-label={label}
+      />
       <span className="rounded-md bg-zinc-800 px-2 py-1 text-center text-xs tabular-nums text-zinc-200">{display}</span>
     </div>
   )
@@ -199,7 +210,7 @@ function NullHistogram({ values, real }: { values: number[]; real: number }) {
   const pad = { left: 42, right: 20, top: 22, bottom: 35 }
   const minimum = Math.min(...values) * 0.96
   const maximum = Math.max(real, ...values) * 1.04
-  const bins = 14
+  const bins = Math.min(28, Math.max(6, Math.round(Math.sqrt(values.length) * 1.5)))
   const counts = Array.from({ length: bins }, () => 0)
   for (const value of values) {
     const index = Math.min(bins - 1, Math.floor(((value - minimum) / (maximum - minimum)) * bins))
@@ -212,6 +223,16 @@ function NullHistogram({ values, real }: { values: number[]; real: number }) {
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label="Null distribution of average clustering coefficients">
       <line x1={pad.left} y1={height - pad.bottom} x2={width - pad.right} y2={height - pad.bottom} className="stroke-border" />
+      <line x1={pad.left} y1={pad.top} x2={pad.left} y2={height - pad.bottom} className="stroke-border" />
+      {[0, Math.ceil(maxCount / 2), maxCount].filter((tick, index, ticks) => ticks.indexOf(tick) === index).map((tick) => {
+        const tickY = height - pad.bottom - (tick / maxCount) * (height - pad.top - pad.bottom)
+        return (
+          <g key={tick}>
+            <line x1={pad.left - 4} y1={tickY} x2={width - pad.right} y2={tickY} className="stroke-border/40" />
+            <text x={pad.left - 8} y={tickY + 3} textAnchor="end" className="fill-muted-foreground text-[10px]">{tick}</text>
+          </g>
+        )
+      })}
       {counts.map((count, index) => {
         const barWidth = plotWidth / bins
         const barHeight = (count / maxCount) * (height - pad.top - pad.bottom)
@@ -222,6 +243,7 @@ function NullHistogram({ values, real }: { values: number[]; real: number }) {
       <text x={pad.left} y={height - 12} className="fill-muted-foreground text-[10px]">{minimum.toFixed(2)}</text>
       <text x={width - pad.right} y={height - 12} textAnchor="end" className="fill-muted-foreground text-[10px]">{maximum.toFixed(2)}</text>
       <text x={width / 2} y={height - 2} textAnchor="middle" className="fill-muted-foreground text-[10px]">average clustering C</text>
+      <text x="12" y={height / 2} textAnchor="middle" transform={`rotate(-90 12 ${height / 2})`} className="fill-muted-foreground text-[10px]">shuffle count</text>
     </svg>
   )
 }
@@ -232,22 +254,28 @@ export function Week2() {
   const [wsRewiring, setWsRewiring] = useState(0.2)
   const [baLinks, setBaLinks] = useState(5)
   const [shuffleCount, setShuffleCount] = useState(100)
+  const [shuffleSlider, setShuffleSlider] = useState(100)
   const base = useMemo(() => {
     const marvelGraph = undirectedMarvel(week1Graph)
     const real = measureGraph(marvelGraph)
     return { marvelGraph, real }
   }, [])
   const shuffles = useMemo(
-    () =>
-      Array.from({ length: shuffleCount }, (_, index) =>
-        averageClustering(
-          degreePreservingShuffle(
-            base.marvelGraph,
-            base.marvelGraph.edges.length * 10,
-            4000 + index,
+    () => {
+      while (SHUFFLE_CACHE.length < shuffleCount) {
+        const index = SHUFFLE_CACHE.length
+        SHUFFLE_CACHE.push(
+          averageClustering(
+            degreePreservingShuffle(
+              base.marvelGraph,
+              base.marvelGraph.edges.length * 10,
+              4000 + index,
+            ),
           ),
-        ),
-      ),
+        )
+      }
+      return SHUFFLE_CACHE.slice(0, shuffleCount)
+    },
     [base.marvelGraph, shuffleCount],
   )
   const analysis = useMemo(() => {
@@ -381,12 +409,13 @@ export function Week2() {
               <div className="mb-7 rounded-lg border border-zinc-800 bg-black/20 p-4">
                 <ParameterSlider
                   label="Number of random shuffles"
-                  value={shuffleCount}
-                  display={String(shuffleCount)}
+                  value={shuffleSlider}
+                  display={String(shuffleSlider)}
                   min={10}
                   max={200}
                   step={10}
-                  onChange={setShuffleCount}
+                  onChange={setShuffleSlider}
+                  onCommit={setShuffleCount}
                 />
               </div>
               <div className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-center">
