@@ -27,14 +27,14 @@ export function HomePage() {
             Week 1 · Three.js
           </Badge>
           <h1 className="font-heading text-4xl tracking-tight text-balance sm:text-5xl">
-            Socialy Graph
+            Social Graphs
           </h1>
           <p className="mt-3 max-w-xl text-base text-muted-foreground text-pretty">
             A 3D network sketch. Open week 1 — drag to orbit, scroll to zoom.
           </p>
         </header>
 
-        <section className="grid max-w-sm gap-4">
+        <section className="grid max-w-3xl gap-4 sm:grid-cols-2">
           <Link to="/week1" className="group">
             <Card className="h-full bg-card/75 backdrop-blur-md transition duration-200 group-hover:-translate-y-1 group-hover:ring-foreground/20">
               <CardHeader>
@@ -50,6 +50,22 @@ export function HomePage() {
               </CardHeader>
               <CardFooter className="justify-between text-muted-foreground">
                 <span className="line-clamp-1">Open The Graph</span>
+                <ArrowRight className="size-4 shrink-0 transition group-hover:translate-x-0.5" />
+              </CardFooter>
+            </Card>
+          </Link>
+          <Link to="/week2" className="group">
+            <Card className="h-full bg-card/75 backdrop-blur-md transition duration-200 group-hover:-translate-y-1 group-hover:ring-foreground/20">
+              <CardHeader>
+                <div className="mb-3 flex items-center justify-between">
+                  <Badge variant="secondary">Week 2</Badge>
+                  <span className="size-2.5 rounded-full bg-blue-400" />
+                </div>
+                <CardTitle>Compared to what?</CardTitle>
+                <CardDescription>Models, null models, and the Marvel network</CardDescription>
+              </CardHeader>
+              <CardFooter className="justify-between text-muted-foreground">
+                <span className="line-clamp-1">Open the analysis</span>
                 <ArrowRight className="size-4 shrink-0 transition group-hover:translate-x-0.5" />
               </CardFooter>
             </Card>
